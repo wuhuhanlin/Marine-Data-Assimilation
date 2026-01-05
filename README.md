@@ -12,8 +12,8 @@
 - **cnn_lstm_pinn**：CNN-LSTM-PINNs（CNN 编码 + LSTM + 物理残差）
 - **unet_lstm_pinn**：U-Net-LSTM-PINNs（UNet 瓶颈 LSTM + 物理残差）
 
-> 说明：你导师给的数据是“再分析场”，真实业务中的观测（Argo、SST、SLA 等）与背景场（模式预报）需要另行接入。
-> 在本科阶段，为了能完整跑通训练流程，本工程默认用“再分析场”模拟真值，并在训练时自动生成“背景+稀疏观测”对。
+> 说明：数据是“再分析场”，真实业务中的观测（Argo、SST、SLA 等）与背景场（模式预报）需要另行接入。
+> 为了能完整跑通训练流程，本工程默认用“再分析场”模拟真值，并在训练时自动生成“背景+稀疏观测”对。
 
 ---
 
@@ -100,7 +100,7 @@ D:\Marine Data Assimilation\MarineDLAssimilation\data\06\
 
 ---
 
-## 3. 训练（PyCharm 一键运行）
+## 3. 训练
 
 打开 `src/train.py`，右键 Run，或命令行：
 > ✅ 说明：你既可以用命令行 `python -m src.train ...`（推荐），也可以在 PyCharm 里**直接右键运行** `src/train.py`。
@@ -145,13 +145,13 @@ python -m src.evaluate --run_dir runs/20250101_120000
 
 ---
 
-## 5. 你关心的“全部变量 + 全部深度层”
+## 5. 全部变量 + 全部深度层
 
 工程支持“自动读取所有变量”，但 **直接把全部变量+50层全喂给网络** 会非常吃显存与内存（通道数可能上百甚至几百）。
 
 因此：
 - 默认 include_vars 只包含常用动力变量：`thetao, so, uo, vo, zos`（并默认只取前 `--depth_max 10` 层）
-- 如果你确实要全变量、全深度，可这样跑：
+- 如果确实要全变量、全深度，可这样跑：
 ```bash
 python -m src.train --data_dir "data\\06" --model unet   --include_vars "ALL" --target_vars "ALL" --depth_max 50
 ```
@@ -160,7 +160,7 @@ python -m src.train --data_dir "data\\06" --model unet   --include_vars "ALL" --
 
 ## 6. 消融实验（Ablation）
 
-你可以用同一个训练脚本完成消融：
+可以用同一个训练脚本完成消融：
 
 - 去掉物理损失：`--phys_geo 0 --phys_advdiff 0`
 - 去掉某些输入变量：`--include_vars "thetao,so,zos"`
@@ -177,7 +177,7 @@ python -m src.train --data_dir "data\\06" --model unet   --include_vars "ALL" --
 - `Xb` = 对 Xa_true 做平滑 + 加噪（模拟背景）
 - `Y` = 对 Xa_true 随机采样（模拟稀疏观测）
 
-你之后拿到真实观测文件时，只需要在 `src/data_loader.py` 的
+之后拿到真实观测文件时，只需要在 `src/data_loader.py` 的
 `_make_background_and_obs()` 里替换生成逻辑（保持输出的张量形状不变），其余模型与训练代码不变。
 
 ---
@@ -189,5 +189,5 @@ python -m src.train --data_dir "data\\06" --model unet   --include_vars "ALL" --
   - `num_workers=0`（Windows多进程读nc经常会出问题）
 - **显存爆了**：减少 `--depth_max`、减少变量、减小 `--patch_size`、减小 `--batch_size`。
 - **低纬度地转项不稳定**：PINNs 的地转损失在低纬（f≈0）会被放大，本工程默认对 `|f|<1e-5` 处降低权重，你也可关闭地转项。
-不需要。它们只是你前期用来“探测变量/维度”的小样本文件，**正式训练只需要 `data/06` 目录下的每日原始 nc**。
-如果你想做快速调试，也可以单独新建一个目录（例如 `data/06_mini`）放这些小文件，然后用 `--data_dir data\06_mini` 跑一遍流程。
+不需要。它们只是前期用来“探测变量/维度”的小样本文件，**正式训练只需要 `data/06` 目录下的每日原始 nc**。
+如果想做快速调试，也可以单独新建一个目录（例如 `data/06_mini`）放这些小文件，然后用 `--data_dir data\06_mini` 跑一遍流程。
